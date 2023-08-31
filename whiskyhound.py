@@ -24,7 +24,7 @@ def fetch_winning_bid(url, brand_pattern, bottling_pattern):
     try:
         driver.get(url)
         lot_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.winning-bid-css-selector'))  # Replace with the actual CSS selector
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.uc-price'))  
         )
         for element in lot_element:
             print(f"Winning bid for {url}: {element.text}")
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     brand = input("Enter the whisky brand you're interested in: ").replace('*', '.*')
     bottling = input("Enter the specific bottling (optional, press Enter to skip): ").replace('*', '.*')
     
-    sitemap_url = 'https://whiskyauctioneer.com/sitemap.xml?page=1'  # Example page, you can loop through different pages
+    sitemap_url = 'https://whiskyauctioneer.com/sitemap.xml?page=1'  # This skips over the first auction but there were issues with starting from the source
     auction_urls = fetch_sitemap_urls(sitemap_url)
     print(f"Fetched {len(auction_urls)} auction URLs. Filtering by brand: {brand}")
 
