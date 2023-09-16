@@ -47,6 +47,9 @@ python whiskyhound.py
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
+## Upcoming
+I plan to incorporate Whisky Hammer into this too, but one thing at a time. 
+
 ## License
 
 [GNU](https://www.gnu.org/licenses/gpl-3.0.en.html)
