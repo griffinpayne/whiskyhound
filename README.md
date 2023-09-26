@@ -1,56 +1,59 @@
 # WhiskyHound
 
-WhiskyHound is a Whiskey Auction Price Scraper tailored for [Whisky Auctioneer](https://www.whiskyauctioneer.com/). It allows users to fetch auction lot URLs based on their whisky brand of interest and optionally, a specific bottling. Once the URLs are fetched, it then scrapes each auction URL to retrieve the winning bid.
+WhiskyHound is a whisky auction price scraper tailored for [Whisky Auctioneer](https://www.whiskyauctioneer.com/). It provides users with the ability to efficiently search and retrieve the winning bid prices for a specified whisky whisky (or brand, bottles, etc., just add OR between search terms) from the search results, without having to navigate to each auction lot URL individually.
 
-If you're running this scraper frequently or for extended periods, it's recommended to use a VPN to avoid potential IP blocks.
+To avoid any potential IP blocks when running this scraper for extended periods or frequently, consider using a VPN.
 
 ## Features
 
-- Fetches auction lot URLs based on specified whisky brand and bottling.
-- Multi-threaded scraping for improved efficiency.
-- Option to save the results in a CSV file.
-- Built-in retry mechanism for increased robustness.
+- Retrieves the winning bids directly from the search results, based on the specified criteria, eliminating the need to navigate to each individual auction lot URL, allowing for price analysis easily.
+- Extracts the brand and bottling details from the auction lot URLs for more structured and meaningful results.
+- Multi-threaded scraping to optimize the retrieval process.
+- Option to output the scraped results to a CSV file, with structured columns for Brand, Bottling, URL, and Price.
+- Retry mechanism to enhance robustness.
 
 ## Prerequisites
 
-Before you begin, ensure you have installed:
+Before starting, ensure you have:
 
 - [Python 3.8](https://www.python.org/downloads/) or later.
-- [Firefox WebDriver](https://github.com/mozilla/geckodriver/releases) in your system's PATH or in the directory of the script.
+- [Firefox WebDriver](https://github.com/mozilla/geckodriver/releases) added to your system's PATH or placed in the directory of the script.
 
 ## Installation
 
 1. Clone the repository:
-```bash
+```
 git clone https://github.com/griffinpayne/whiskyhound.git
 cd whiskyhound
 ```
 
 2. Install the required dependencies:
-```bash
+```
 pip install -r requirements.txt
 ```
 
 ## Usage
 
 1. Run the script:
-```bash
+```
 python whiskyhound.py
 ```
 
 2. Follow the on-screen prompts:
-- Enter the whisky brand you're interested in.
-- Optionally, enter a specific bottling.
-3. If prompted, decide whether to save the results in a CSV file and provide the desired filename.
+- Enter the whisky you're interested in.
+
+3. Name the CSV file and specify to save the search results. 
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+Pull requests are welcome. For substantial changes, please open an issue first to discuss your proposed alterations.
 
 ## Upcoming
-I plan to incorporate Whisky Hammer into this too, but one thing at a time. 
+
+The incorporation of Whisky Hammer is in the pipeline—progressing one step at a time.
 
 ## License
 
 [GNU](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
+This updated README provides clear and concise information about the improved functionalities and the updated process flow of your script.

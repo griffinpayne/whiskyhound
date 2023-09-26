@@ -1,82 +1,70 @@
 import re
 import csv
-import requests
-from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from concurrent.futures import ThreadPoolExecutor
+from selenium.common.exceptions import NoSuchElementException
 
-session = requests.Session()
+def extract_brand_bottling(url):
+    try:
+        parts = url.split('/')
+        brand_part = parts[5].split('-')[0]
+        last_part = parts[-1]
+        bottling_parts = last_part.split('-')[1:]
+        bottling = ' '.join(bottling_parts)
+    except IndexError:
+        brand_part = ''
+        bottling = ''
+    return brand_part, bottling
 
-def fetch_sitemap_urls(base_url, max_page):
-    all_urls = []
-    
-    def extract_urls(content):
-        soup = BeautifulSoup(content, 'xml')
-        return [url.text for url in soup.find_all('loc')]
-      
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(session.get, f"{base_url}?page={page}") for page in range(1, max_page+1)]
-        for future in futures:
-            content = future.result().content
-            urls = extract_urls(content)
-            all_urls.extend([url for url in urls if '/lot/' in url])
-            
-    return all_urls
-
-def fetch_winning_bid(url, brand_pattern, bottling_pattern):
-    if not re.search(brand_pattern, url, re.IGNORECASE) or (bottling_pattern and not re.search(bottling_pattern, url, re.IGNORECASE)):
-        return
+def fetch_winning_bids(base_url, brand):
+    results = []
     options = webdriver.FirefoxOptions()
     options.add_argument('-headless')
     with webdriver.Firefox(options=options) as driver:
         try:
-            driver.get(url)
-            lot_element = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '#new-layout div.place-bid.bid-section.bid-info span'))
-            )
-            return (url, lot_element.text)
+            search_url = f"{base_url}?text={brand}&sort=field_reference_field_end_date+DESC&items_per_page=500"
+            driver.get(search_url)
+            total_lots_element = driver.find_element(By.CSS_SELECTOR, 'p.left')
+            total_lots_text = total_lots_element.text
+            total_lots = int(re.search(r'\d+', total_lots_text).group(0))
+            
+            for i in range(1, total_lots + 1):
+                try:
+                    bid_selector = f'div.views-row:nth-child({i}) > div:nth-child(2) > span:nth-child(1) > span:nth-child(2)'
+                    bid_info = driver.find_element(By.CSS_SELECTOR, bid_selector).text
+                    
+                    url_selector = f'div.views-row:nth-child({i}) a'
+                    url = driver.find_element(By.CSS_SELECTOR, url_selector).get_attribute('href')
+                    
+                    brand, bottling = extract_brand_bottling(url)
+                    results.append({
+                        'brand': brand,
+                        'bottling': bottling,
+                        'bid_info': bid_info,
+                        'url': url
+                    })
+                    
+                except NoSuchElementException:
+                    print(f"Element not found for index {i}")
+                    
         except Exception as e:
-            print(f"No winning bid found for {url}. Exception: {e}")
-
-def prompt_to_output_to_csv():
-    csv_output = input("Do you want to output the results to a CSV file? (y/n) ")
-    if csv_output.lower() == "y":
-        csv_filename = input("Enter the name of the CSV file: ")
-        return csv_filename
-    else:
-        return None
+            print(f"Failed to process the page. Exception: {e}")
+    return results
 
 def main():
-    brand = input("Enter the whisky brand you're interested in: ").replace('*', '.*')
-    bottling = input("Enter the specific bottling (optional, press Enter to skip): ").replace('*', '.*')
+    brand = input("Enter the whisky you're interested in: ").replace(' ', '+')
+    base_url = 'https://whiskyauctioneer.com/auction-search'
     
-    sitemap_url = 'https://whiskyauctioneer.com/sitemap.xml'
-    auction_urls = fetch_sitemap_urls(sitemap_url, 618)
-    filtered_urls = [url for url in auction_urls if re.search(brand, url, re.IGNORECASE)]
-    if bottling:
-        filtered_urls = [url for url in filtered_urls if re.search(bottling, url, re.IGNORECASE)]
-    
-    print(f"Filtered to {len(filtered_urls)} auction lot URLs.")
-    
-    results = []
-    with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(fetch_winning_bid, url, brand, bottling) for url in filtered_urls]
-        for future in futures:
-            result = future.result()
-            if result:
-                results.append(result)
-                
+    results = fetch_winning_bids(base_url, brand)
     print("Scraping complete.")
     
-    csv_filename = prompt_to_output_to_csv()
+    csv_filename = input("Enter the name of the CSV file to save the results: ")
     if csv_filename:
         with open(csv_filename, "w", newline='') as csvfile:
             csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(['Brand', 'Bottling', 'Winning Bid', 'URL'])
             for result in results:
-                csv_writer.writerow(result)
-
+                csv_writer.writerow([result['brand'], result['bottling'], result['bid_info'], result['url']])
+                
 if __name__ == "__main__":
     main()
