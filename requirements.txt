@@ -1,1 +1,5 @@
 selenium
+pandas
+openpyxl
+matplotlib
+beautifulsoup4

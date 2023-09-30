@@ -6,7 +6,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+import pandas as pd
+import matplotlib.pyplot as plt
+from io import BytesIO
+from openpyxl.drawing.image import Image
+import plotly.graph_objects as go
 
+start_time = time.time()  # Record the start time
 
 def extract_brand_bottling(url):
     try:
@@ -57,8 +63,8 @@ def fetch_winning_bids(base_url, brand):
                     break
 
                 for i in range(1, 501):  # Attempt to fetch up to 500 lots on the current page
-                    if (page_num * 500) + i > total_lots:
-                        break  # break out of the loop if the total number of elements is reached
+                    num_iterations = min(500, total_lots - page_num * 500)
+                for i in range(1, num_iterations + 1):
 
                     try:
                         bid_selector = f'div.views-row:nth-child({i}) > div:nth-child(2) > span:nth-child(1) > span:nth-child(2)'
@@ -102,6 +108,7 @@ def fetch_winning_bids(base_url, brand):
     return results
 
 
+
 def main():
     brand = input("Enter the whisky you're interested in: ").replace(' ', '+')
     base_url = f'https://whiskyauctioneer.com/auction-search?text={brand}&sort=field_reference_field_end_date+DESC&items_per_page=500'
@@ -109,16 +116,45 @@ def main():
     results = fetch_winning_bids(base_url, brand)
     print("Scraping complete.")
     print(f"Found {len(results)} results.")
+    
+    # Transforming and Plotting Data
+    df = pd.DataFrame(results)
+    df['bid_info'] = df['bid_info'].replace('[\$,£]', '', regex=True).astype(float)
+    df['end_date'] = pd.to_datetime(df['end_date'], format='%d.%m.%y')
+    df['end_date'] = df['end_date'].dt.strftime('%Y-%m-%d')  
+    grouped_df = df.groupby(['bottling', 'end_date'])['bid_info'].mean().reset_index()
 
-    csv_filename = input("Enter the name of the CSV file to save the results: ")
-    if not csv_filename.endswith('.csv'):
-        csv_filename += '.csv'
-    with open(csv_filename, "w", newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(['Brand', 'Bottling', 'Price', 'End Date', 'URL'])
-        for result in results:
-            csv_writer.writerow([result['brand'], result['bottling'], result['bid_info'], result['end_date'], result['url']])
+    bottlings = grouped_df['bottling'].unique()
+    plt.figure(figsize=(20,12))
+    for bottling in bottlings:
+        subset = grouped_df[grouped_df['bottling'] == bottling]
+        plt.plot(subset['end_date'], subset['bid_info'], label=bottling)
 
+    plt.xlabel('End Date')
+    plt.ylabel('Average Price')
+    plt.title('Average Price of Each Bottling Over Time')
+    plt.grid(axis='both', linestyle='--', alpha=0.7)  
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1), ncol=2)
+    # Save Data to Excel
+    excel_filename = input("Enter the name of the Excel file to save the results: ")
+    if not excel_filename.endswith('.xlsx'):
+        excel_filename += '.xlsx'
+
+    with pd.ExcelWriter(excel_filename, engine='openpyxl') as writer:
+        grouped_df.to_excel(writer, sheet_name='Average Prices', index=False)
+        df.to_excel(writer, sheet_name='Detailed View', index=False)
+            
+        # Adding a Plot to Excel
+        sheet = writer.sheets['Average Prices']
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png')
+        img = Image(img_stream)
+        sheet.add_image(img, 'E5')
+        
+    end_time = time.time()  # Record the end time
+    elapsed_time = end_time - start_time  # Calculate the elapsed time
+    minutes, seconds = divmod(elapsed_time, 60)
+    print(f"Time taken to complete: {int(minutes)} minutes and {seconds:.2f} seconds")
 
 if __name__ == "__main__":
     main()
